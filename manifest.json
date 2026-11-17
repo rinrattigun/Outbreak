@@ -1,0 +1,11 @@
+{
+  "display_name": "Outbreak",
+  "loading_order": 20,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Outbreak",
+  "version": "0.1.0",
+  "homePage": ""
+}
