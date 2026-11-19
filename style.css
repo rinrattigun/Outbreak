@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* шрифт подгружается из index.js отдельным <link>: @import блокирует весь стиль, если сеть на телефоне медленная */
 /* OUTBREAK — ретро-терминал. Все классы с префиксом ob-. Темы: phosphor (по умолчанию), amber, slate */
 #ob-panel, #ob-toasts {
   --bg: #0b120d; --bg2: #101a13; --fg: #a8d4a0; --hi: #d6f0cf; --dim: #5e8760; --line: #4a7650; --btn: #14221a;
@@ -21,8 +21,8 @@
 }
 #ob-panel.ob-open { display: flex; }
 #ob-panel * { box-sizing: border-box; }
-#ob-panel button { font: inherit; color: inherit; cursor: pointer; border-radius: 0; }
-#ob-panel::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 9;
+:where(#ob-panel) button { font: inherit; color: inherit; cursor: pointer; border-radius: 0; }
+#ob-panel::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; left: 0; pointer-events: none; z-index: 9;
   background: repeating-linear-gradient(0deg, #0000 0 2px, #00000014 2px 3px); }
 /* заголовок окна — инверсная полоса как в старых оболочках */
 .ob-head { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 10px; background: var(--fg); color: var(--bg); cursor: move; touch-action: none; user-select: none; }
@@ -37,7 +37,7 @@
 .ob-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
 @media (max-width: 640px) {
   #ob-panel { left: 8px !important; right: 8px !important; top: auto !important; width: auto !important;
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100dvh - 210px - env(safe-area-inset-bottom, 0px)); }
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important; max-height: calc(100vh - 210px); max-height: calc(100dvh - 210px - env(safe-area-inset-bottom, 0px)); }
   .ob-head { cursor: default; }
   .ob-body { padding: 16px 10px 10px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .ob-grid { grid-template-columns: 1fr; gap: 16px; }
@@ -46,7 +46,7 @@
   .ob-row > span { grid-column: 1 / -1; }
   .ob-row em { min-width: 0; }
   .ob-char { grid-template-columns: 96px 1fr 30px; }
-  .ob-modal { position: fixed; inset: 0; z-index: 3200; padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .ob-modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; z-index: 3200; padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
   .ob-mh { padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
   .ob-item { grid-template-columns: 1fr; }
   .ob-item .ob-acts { justify-content: flex-start; }
@@ -54,7 +54,7 @@
 }
 /* телефон в альбомной ориентации: колонки обратно, панель на всю высоту */
 @media (max-width: 640px) and (min-width: 480px) and (max-height: 500px) { .ob-grid { grid-template-columns: 1.1fr 1fr; } }
-@media (max-height: 520px) { #ob-panel { bottom: 8px !important; max-height: calc(100dvh - 16px); } #ob-toasts { top: auto; bottom: 12px; } }
+@media (max-height: 520px) { #ob-panel { bottom: 8px !important; max-height: calc(100vh - 16px); max-height: calc(100dvh - 16px); } #ob-toasts { top: auto; bottom: 12px; } }
 /* сенсорный экран: крупные цели нажатия, поля ввода ≥16px (iOS не зумит) */
 @media (pointer: coarse) {
   .ob-ibtn { width: 40px; height: 32px; font-size: 16px; }
@@ -88,7 +88,7 @@
 .ob-seg i.on { background: var(--ok); border-color: var(--ok); } .ob-seg i.on.m { background: var(--mid); border-color: var(--mid); } .ob-seg i.on.h { background: var(--low); border-color: var(--low); } .ob-seg i.on.x { background: var(--crit); border-color: var(--crit); }
 /* полосы — блочные сегменты как ▮▮▮▯▯ */
 .ob-bar, .ob-hp { position: relative; height: 12px; border: 1px solid var(--line); background: transparent; --c: var(--ok); }
-.ob-bar i, .ob-hp i { position: absolute; inset: 1px auto 1px 1px; max-width: calc(100% - 2px); background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 7px); }
+.ob-bar i, .ob-hp i { position: absolute; top: 1px; bottom: 1px; left: 1px; max-width: calc(100% - 2px); background: repeating-linear-gradient(90deg, var(--c) 0 5px, transparent 5px 7px); }
 .ob-bar i { --c: var(--low); } .ob-bar.surv i { --c: var(--ok); }
 .ob-hp i.m { --c: var(--mid); } .ob-hp i.l { --c: var(--low); } .ob-hp i.c { --c: var(--crit); }
 .ob-hp u { position: absolute; left: 0; bottom: -5px; height: 2px; background: var(--inf); max-width: 100%; }
@@ -116,7 +116,7 @@
 .ob-empty { text-align: center; padding: 18px 8px; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .ob-empty p { margin: 0; color: var(--dim); }
 /* окна */
-.ob-modal { position: absolute; inset: 0; background: var(--bg); z-index: 5; display: flex; flex-direction: column; padding: 0 12px 10px; overflow: auto; }
+.ob-modal { position: absolute; top: 0; right: 0; bottom: 0; left: 0; background: var(--bg); z-index: 5; display: flex; flex-direction: column; padding: 0 12px 10px; overflow: auto; }
 .ob-modal[hidden] { display: none; }
 .ob-mh { position: sticky; top: 0; z-index: 2; background: var(--bg); display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 10px 0 6px; border-bottom: 1px solid var(--line); }
 .ob-mh h3 { margin: 0; font: 600 13px/1.2 inherit; font-family: inherit; text-transform: uppercase; letter-spacing: 2px; color: var(--hi); }
@@ -153,3 +153,17 @@
 .ob-toast button:hover { background: var(--fg); color: var(--bg); }
 .ob-set label { display: flex; gap: 8px; align-items: center; margin: 6px 0; }
 .ob-set input[type=text] { width: 100%; }
+
+/* ───── телефон / планшет: панель закреплена и открывается на весь экран ───── */
+#ob-panel.ob-mobile {
+  position: fixed !important; top: 0 !important; right: 0 !important; bottom: 0 !important; left: 0 !important;
+  width: 100% !important; max-width: none !important; height: auto !important; max-height: none !important;
+  margin: 0 !important; transform: none !important; border-width: 0 !important; box-shadow: none !important;
+  z-index: 99990 !important; overflow: hidden;
+}
+#ob-panel.ob-mobile .ob-head { padding-top: calc(6px + env(safe-area-inset-top, 0px)); padding-left: calc(10px + env(safe-area-inset-left, 0px)); padding-right: calc(6px + env(safe-area-inset-right, 0px)); cursor: default; }
+#ob-panel.ob-mobile .ob-body { flex: 1 1 auto; min-height: 0; padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); padding-left: calc(10px + env(safe-area-inset-left, 0px)); padding-right: calc(10px + env(safe-area-inset-right, 0px)); }
+#ob-panel.ob-mobile .ob-grid { grid-template-columns: 1fr; gap: 16px; }
+#ob-panel.ob-mobile .ob-modal { position: absolute; top: 0; right: 0; bottom: 0; left: 0; z-index: 5; padding: 0 12px calc(10px + env(safe-area-inset-bottom, 0px)); }
+#ob-panel.ob-mobile .ob-mh { padding-top: 10px; }
+#ob-toasts.ob-mobile { z-index: 99995 !important; top: auto !important; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }

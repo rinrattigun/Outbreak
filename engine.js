@@ -17,7 +17,8 @@ function rnd(seed) {
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
-const W = (s) => new RegExp(`(?<![\\p{L}\\p{N}])(?:${s})(?![\\p{L}\\p{N}])`, 'iu');
+// Без lookbehind (?<!…): он ломает разбор всего файла в iOS Safari < 16.4. Вместо него — «начало или не-буква».
+const W = (s) => new RegExp(`(?:^|[^\\p{L}\\p{N}])(?:${s})(?![\\p{L}\\p{N}])`, 'iu');
 const keyOf = (it) => String(it.en || it.name).toLowerCase();
 
 // ───────────────────────── сложность ─────────────────────────
@@ -112,7 +113,7 @@ const ITEM_DEFS = [
   ['crowbar', 'Монтировка', 'weapon', 'монтировк\\p{L}*|лом(?:ик|а|ом)?|crowbar', 1],
   ['ammo', 'Патроны', 'weapon', 'патрон\\p{L}*|боеприпас\\p{L}*|обойм\\p{L}*|ammo|ammunition|bullets?|magazines?|clips?', 5],
 ];
-export const LEX = ITEM_DEFS.map(([en, name, cat, p, q]) => ({ en, name, cat, q, re: new RegExp(`(?<![\\p{L}\\p{N}])(?:${p})(?![\\p{L}\\p{N}])`, 'giu') }));
+export const LEX = ITEM_DEFS.map(([en, name, cat, p, q]) => ({ en, name, cat, q, re: new RegExp(`(?:^|[^\\p{L}\\p{N}])(${p})(?![\\p{L}\\p{N}])`, 'giu') }));
 export const QUICK_ITEMS = ITEM_DEFS.map(([en, name, cat]) => ({ en, name, cat }));
 
 const NUMW = { один: 1, одна: 1, одну: 1, одно: 1, пару: 2, пара: 2, два: 2, две: 2, три: 3, четыре: 4, пять: 5, шесть: 6, семь: 7, восемь: 8, девять: 9, десять: 10, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
@@ -130,8 +131,9 @@ export function detectItems(s) {
     d.re.lastIndex = 0;
     for (const m of s.matchAll(d.re)) {
       let def = d.q;
-      if (d.en === 'ammo' && /обойм|magazine|clip/i.test(m[0])) def = 10;
-      hits.push({ en: d.en, name: d.name, cat: d.cat, qty: qtyBefore(s, m.index, def), at: m.index, end: m.index + m[0].length });
+      const at = m.index + m[0].length - m[1].length;   // m[1] — само слово, без символа перед ним
+      if (d.en === 'ammo' && /обойм|magazine|clip/i.test(m[1])) def = 10;
+      hits.push({ en: d.en, name: d.name, cat: d.cat, qty: qtyBefore(s, at, def), at, end: at + m[1].length });
     }
   }
   hits.sort((a, b) => a.at - b.at);
@@ -177,13 +179,13 @@ const WOUNDS = [
 // эти типы без указания части тела не предлагаем (слишком много ложных срабатываний)
 const NEED_PART = new Set(['cut', 'scratch', 'fracture']);
 // гипотезы, воспоминания, шрамы, старые раны, отрицания — не события
-const HYP = /(?<![\p{L}])(?:если|вдруг|может|мог бы|могла бы|чуть не|едва не|почти|боится|боялся|боялась|страх|вспомин\p{L}*|воспоминан\p{L}*|шрам\p{L}*|рубец|рубц\p{L}*|старый|старая|старое|старые|давно|когда-то|раньше|прошл\p{L}*|назад|if|might|could|would|almost|nearly|scar\p{L}*|old|memory|remember\p{L}*|used to|ago|without)(?![\p{L}])/iu;
+const HYP = /(?:^|[^\p{L}])(?:если|вдруг|может|мог бы|могла бы|чуть не|едва не|почти|боится|боялся|боялась|страх|вспомин\p{L}*|воспоминан\p{L}*|шрам\p{L}*|рубец|рубц\p{L}*|старый|старая|старое|старые|давно|когда-то|раньше|прошл\p{L}*|назад|if|might|could|would|almost|nearly|scar\p{L}*|old|memory|remember\p{L}*|used to|ago|without)(?![\p{L}])/iu;
 // предмет просто описан как принадлежащий персонажу — это не находка
 const POSS = /на поясу|за поясом|при себе|в кобуре|в ножнах|на ремне|за спиной|на бедре|висит|висел|висела|в рюкзаке|на плече|(?:его|её|ее|свой|своё|свою|их) (?:нож|пистолет|ружь|автомат|бит|топор|оружи|рюкзак)|on (?:his|her|their) (?:belt|hip|back|shoulder)|strapped|sheathed|holstered|(?:his|her|their) (?:knife|gun|pistol|rifle|bat|axe|weapon)|wearing|carrying|carries/iu;
 const negated = (s, re) => {
   const m = re.exec(s); if (!m) return false;
   const pre = s.slice(Math.max(0, m.index - 20), m.index);
-  return /(?<![\p{L}])(?:не|ни|без|never|not|no|without|n't)\s+(?:\p{L}+\s+){0,2}$/iu.test(pre);
+  return /(?:^|[^\p{L}])(?:не|ни|без|never|not|no|without|n't)\s+(?:\p{L}+\s+){0,2}$/iu.test(pre);
 };
 const COND = {
   faint: /обморок\p{L}*|потерял\p{L}* сознани\p{L}*|без сознания|faint\p{L}*|passed out|blacked out|lost consciousness|unconscious|knocked out/iu,
@@ -216,7 +218,7 @@ const LABEL_RE = new RegExp(`^[^\\p{L}\\n]*(?:${LABELS})\\s*[:：(]`, 'iu');
 function stripInfo(t) {
   return t.split('\n').filter((ln) => !(/[|│¦]/.test(ln) || LABEL_RE.test(ln) || /^\s*\[[^\]]{6,}\]\s*$/.test(ln))).join('\n');
 }
-const sentencesOf = (t) => t.split(/(?<=[.!?…])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+const sentencesOf = (t) => t.replace(/([.!?…])\s+/g, '$1\n').split(/\n+/).map((s) => s.trim()).filter(Boolean);
 
 export function detectEvents(t) {
   const ev = { expl: RX.expl.test(t), shot: RX.shot.test(t), silenced: RX.silenced.test(t), scream: RX.scream.test(t),
@@ -238,7 +240,7 @@ function nameRe(name) {
   if (reCache.has(name)) return reCache.get(name);
   const n = name.trim();
   const stem = n.length > 5 ? n.slice(0, -2) : n.length > 3 ? n.slice(0, -1) : n;
-  const re = new RegExp(`(?<![\\p{L}])${esc(stem)}${n.length <= 3 ? '(?![\\p{L}])' : ''}`, 'iu');
+  const re = new RegExp(`(?:^|[^\\p{L}])${esc(stem)}${n.length <= 3 ? '(?![\\p{L}])' : ''}`, 'iu');
   reCache.set(name, re);
   return re;
 }
@@ -251,7 +253,7 @@ function namedIn(S, s) {
   return found.sort((a, b) => a.at - b.at).map((x) => x.c);
 }
 // Бот обращается к игроку словами «ты/вас/you» — для предложений с подтверждением считаем это упоминанием игрока.
-const YOU_RE = /(?<![\p{L}])(?:ты|тебя|тебе|тобой|вас|вам|вами|вы|you|your)(?![\p{L}])/iu;
+const YOU_RE = /(?:^|[^\p{L}])(?:ты|тебя|тебе|тобой|вас|вам|вами|вы|you|your)(?![\p{L}])/iu;
 function namedWithYou(S, s) {
   const n = namedIn(S, s).filter((c) => !c.dead);
   const u = S.party.find((c) => c.isUser && !c.dead);
@@ -594,7 +596,7 @@ function sentenceLoop(S, msg, narr, i, store, isUser, key) {
     if (RX.shot.test(s) && !hyp && !negated(s, RX.shot)) {
       const c = actorOf(S, msg, s, isUser);
       if (c) {
-        const m = s.match(/(?<![\p{L}\p{N}])(\d+|дважды|трижды|два|три|двух|трёх|twice|thrice|two|three)(?:\s*(?:раз\p{L}*|выстрел\p{L}*|times|shots?)|(?![\p{L}\p{N}]))/iu);
+        const m = s.match(/(?:^|[^\p{L}\p{N}])(\d+|дважды|трижды|два|три|двух|трёх|twice|thrice|two|three)(?:\s*(?:раз\p{L}*|выстрел\p{L}*|times|shots?)|(?![\p{L}\p{N}]))/iu);
         let cnt = 1;
         if (m) cnt = /^\d+$/.test(m[1]) ? +m[1] : /дважды|два|двух|twice|two/i.test(m[1]) ? 2 : 3;
         cnt = clamp(cnt, 1, 30);

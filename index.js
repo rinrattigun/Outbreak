@@ -74,7 +74,7 @@ const schedule = () => { clearTimeout(timer); timer = setTimeout(() => refresh()
 function clearInject() { try { ctx().setExtensionPrompt(MOD, '', 1, G().depth, false, 0); } catch { /* */ } }
 function refresh(upto) {
   const g = G();
-  syncControls(); applyTheme();
+  syncControls(); applyTheme(); applyLayout();
   if (!g.enabled) { clearInject(); S = null; showPanel(false); renderToasts(); return; }
   showPanel(g.panelOpen);
   const st = store();
@@ -97,6 +97,13 @@ function setEnabled(v) {
 // ───────── панель ─────────
 const THEMES = { phosphor: 'Фосфор (зелёный)', amber: 'Янтарь', slate: 'Сталь (серо-синий)' };
 function applyTheme() { const t = G().theme in THEMES ? G().theme : 'phosphor'; for (const id of ['ob-panel', 'ob-toasts']) { const e = $('#' + id); if (e) e.dataset.theme = t; } }
+// телефон/планшет: узкий экран или сенсорный ввод без мыши
+const isMobile = () => { try { return matchMedia('(max-width: 820px)').matches || (matchMedia('(pointer: coarse)').matches && !matchMedia('(any-pointer: fine)').matches); } catch { return window.innerWidth <= 820; } };
+function applyLayout() {
+  const m = isMobile(), p = $('#ob-panel'), t = $('#ob-toasts');
+  if (p) { p.classList.toggle('ob-mobile', m); if (m) for (const k of ['left', 'top', 'right', 'bottom', 'width', 'height']) p.style[k] = ''; else { const g = G(); if (g.pos) { p.style.left = g.pos.x + 'px'; p.style.top = g.pos.y + 'px'; p.style.right = 'auto'; p.style.bottom = 'auto'; } } }
+  if (t) t.classList.toggle('ob-mobile', m);
+}
 function showPanel(on) { const p = $('#ob-panel'); if (p) p.classList.toggle('ob-open', !!on); }
 function togglePanel(force) {
   const g = G();
@@ -332,6 +339,7 @@ function onChange(e) {
 // ───────── сборка интерфейса ─────────
 function buildPanel() {
   if ($('#ob-panel')) return;
+  if (!$('#ob-font')) { const l = document.createElement('link'); l.id = 'ob-font'; l.rel = 'stylesheet'; l.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap'; document.head.appendChild(l); }
   const p = document.createElement('div');
   p.id = 'ob-panel';
   p.innerHTML = `<div class="ob-head" id="ob-drag"><span class="ob-title">OUTBREAK</span><span class="ob-time" id="ob-time"></span>
@@ -340,7 +348,7 @@ function buildPanel() {
     <div class="ob-body" id="ob-body"></div><div class="ob-modal" id="ob-modal" hidden></div>
     <datalist id="ob-lex">${QUICK_ITEMS.map((q) => `<option value="${h(q.name)}">`).join('')}</datalist>`;
   document.body.appendChild(p);
-  const t = document.createElement('div'); t.id = 'ob-toasts'; document.body.appendChild(t);
+  const t = document.createElement('div'); t.id = 'ob-toasts'; document.body.appendChild(t); applyLayout();
   p.addEventListener('click', onClick); t.addEventListener('click', onClick);
   p.addEventListener('change', onChange);
   $('#ob-power').addEventListener('click', () => setEnabled(false));
@@ -350,7 +358,7 @@ function buildPanel() {
   if (g.pos) { p.style.left = g.pos.x + 'px'; p.style.top = g.pos.y + 'px'; p.style.right = 'auto'; p.style.bottom = 'auto'; }
   let drag = null;
   $('#ob-drag').addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button') || window.innerWidth <= 640) return;   // на телефоне панель закреплена
+    if (e.target.closest('button') || isMobile()) return;   // на телефоне панель закреплена
     const r = p.getBoundingClientRect(); drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
     e.currentTarget.setPointerCapture(e.pointerId);
   });
@@ -364,7 +372,7 @@ function buildPanel() {
     const r = p.getBoundingClientRect(); G().pos = { x: Math.round(r.left), y: Math.round(r.top) }; saveG();
   });
   window.addEventListener('resize', () => {
-    const r = p.getBoundingClientRect(); if (!G().pos || window.innerWidth <= 640) return;
+    const r = p.getBoundingClientRect(); applyLayout(); if (!G().pos || isMobile()) return;
     const x = Math.max(0, Math.min(window.innerWidth - r.width, r.left)), y = Math.max(0, Math.min(window.innerHeight - 60, r.top));
     p.style.left = x + 'px'; p.style.top = y + 'px';
   });
